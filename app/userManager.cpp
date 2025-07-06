@@ -1,8 +1,22 @@
+# Giải thích chi tiết từng dòng mã trong `app/userManager.cpp`
+
+> **Lưu ý**: File này định nghĩa các chức năng quản lý người dùng, đăng ký/đăng nhập, xác thực OTP, quản lý ví, chuyển điểm, đổi mật khẩu v.v.  
+> Các chú thích sẽ bám sát từng dòng/từng khối lệnh.
+
+---
+
+```c++
 #include "userManager.h"                // Bao gồm file header định nghĩa lớp UserManager và các phụ thuộc
 #include <cstdlib>                      // Thư viện cho system("cls") để xóa màn hình console
 
 #define SECRET_KEY "JBSWY3DPEHPK3PXP"   // Định nghĩa khóa bí mật dùng cho OTP (bạn có thể thay đổi khi triển khai)
+```
+- Bao gồm các file header cần thiết.  
+- Định nghĩa một SECRET_KEY dùng cho tạo mã OTP.
 
+---
+
+```c++
 // ==================== Khởi tạo UserManager ====================
 UserManager::UserManager() {
     userDatabase = make_unique<UserDatabase>();            // Khởi tạo CSDL người dùng (dùng smart pointer)
@@ -10,12 +24,23 @@ UserManager::UserManager() {
     transactionManager = make_unique<TransactionManager>(); // Khởi tạo quản lý giao dịch
     userDatabase->backupDatabase("data/backup/users.db");  // Tự động backup dữ liệu user khi khởi động
 }
+```
+- **UserManager::UserManager()**: Constructor khởi tạo 3 đối tượng quản lý: user, ví, giao dịch.  
+- `make_unique` tạo smart pointer, tự động giải phóng sau khi dùng.  
+- Khi khởi động sẽ tự động backup dữ liệu user.
 
-// ==================== Hủy UserManager ====================
+---
+
+```c++
 UserManager::~UserManager() {
     // Không cần xóa thủ công vì dùng smart pointer
 }
+```
+- Destructor, không cần dọn dẹp thủ công vì đã dùng smart pointer.
 
+---
+
+```c++
 // ==================== Sinh mật khẩu ngẫu nhiên ====================
 string UserManager::generatePassword() {
     const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // Các ký tự hợp lệ
@@ -32,7 +57,13 @@ string UserManager::generatePassword() {
 
     return password;                                         // Trả về mật khẩu đã tạo
 }
+```
+- Hàm sinh mật khẩu ngẫu nhiên gồm 8 ký tự (chữ hoa, thường, số).  
+- Sử dụng random_device và mt19937 để đảm bảo tính ngẫu nhiên mạnh.
 
+---
+
+```c++
 // ==================== Sinh mã OTP (One-time password) ====================
 void UserManager::generateOTP() {
     char otp[7] = { 0 };                                    // Khởi tạo mảng 6 ký tự + 1 ký tự null kết thúc
@@ -42,7 +73,13 @@ void UserManager::generateOTP() {
     cout << "Ma OTP cua ban la: " << otp << endl;           // Hiển thị OTP ra màn hình
     getCurrentTime();                                       // (Có thể chỉ để cập nhật state thời gian)
 }
+```
+- Tạo OTP 6 số, mỗi 30 giây đổi mã, thuật toán SHA1.
+- In mã OTP ra màn hình (thường dùng để xác thực hành động nhạy cảm).
 
+---
+
+```c++
 // ==================== Kiểm tra mã OTP nhập vào có đúng không ====================
 bool UserManager::verifyOTP(const string& userOTP) {
     char otp[7] = { 0 };                                    // Sinh lại mã OTP hiện tại (phải trùng với lúc gửi)
@@ -53,7 +90,13 @@ bool UserManager::verifyOTP(const string& userOTP) {
     getCurrentTime();                                       // (Có thể chỉ để cập nhật state thời gian)
     return (userOTP == otp);                                // So sánh mã nhập với mã hệ thống
 }
+```
+- Sinh lại OTP hiện tại rồi so sánh với mã người dùng nhập.  
+- Đúng thì trả về true, sai thì false.
 
+---
+
+```c++
 // ==================== Đăng ký tài khoản người dùng thường ====================
 void UserManager::registerUser() {
     system("cls");                                          // Xóa màn hình console
@@ -102,7 +145,12 @@ void UserManager::registerUser() {
         cout << "Dang ky thanh cong! Nhung co loi khi tao vi." << endl;
     }
 }
+```
+- Đăng ký tài khoản mới: nhập thông tin, kiểm tra username trùng, kiểm tra số điện thoại hợp lệ, tạo user, cấp điểm và ví cho user.
 
+---
+
+```c++
 // ==================== Quản trị viên tạo tài khoản hộ ====================
 void UserManager::registerUserForOthers() {
     system("cls");                                          // Xóa màn hình
@@ -150,7 +198,12 @@ void UserManager::registerUserForOthers() {
 
     cout << "Tao tai khoan thanh cong!\nMat khau: " << password << " (Bat buoc doi sau khi dang nhap)" << endl;
 }
+```
+- Chức năng cho quản trị viên tạo hộ tài khoản cho người khác, mật khẩu tự sinh, user bắt buộc đổi sau khi đăng nhập lần đầu.
 
+---
+
+```c++
 // ==================== Đăng nhập tài khoản ====================
 User UserManager::loginUser() {
     string username, password;                              // Biến tạm lưu thông tin đăng nhập
@@ -215,7 +268,17 @@ User UserManager::loginUser() {
 
     return user;                                            // Trả về thông tin user sau khi login thành công
 }
+```
+- Tiến trình đăng nhập:  
+  + Nhập username, password  
+  + Kiểm tra tồn tại, kiểm tra đúng mật khẩu  
+  + Nếu bắt buộc đổi pass => yêu cầu đổi  
+  + Nếu có thông tin pending thay đổi thì xác thực OTP  
+  + Đăng nhập thành công sẽ chuyển vào menu phù hợp theo vai trò.
 
+---
+
+```c++
 // ==================== Chuyển điểm giữa các ví ====================
 void UserManager::transferFunds(const string& senderUsername) {
     string receiverWalletId;                                // ID ví nhận điểm
@@ -260,7 +323,12 @@ void UserManager::transferFunds(const string& senderUsername) {
     cin.ignore();
     cin.get();
 }
+```
+- Chuyển điểm giữa các ví: nhập ví nhận, số điểm, xác thực OTP, thực hiện chuyển, ghi nhận lịch sử giao dịch.
 
+---
+
+```c++
 // ==================== Đổi mật khẩu tài khoản ====================
 void UserManager::changePassword(const string& username) {
     string newPassword, userOTP;
@@ -281,7 +349,12 @@ void UserManager::changePassword(const string& username) {
         cout << "Ma OTP khong dung! Huy doi mat khau." << endl;
     }
 }
+```
+- Đổi mật khẩu: nhập pass mới, xác thực OTP, cập nhật vào CSDL.
 
+---
+
+```c++
 // ==================== Lấy thông tin user từ CSDL ====================
 bool UserManager::loadUserInfo(const string& username, User& user) {
     if (!userDatabase->userExists(username)) {              // Kiểm tra user tồn tại
@@ -290,7 +363,12 @@ bool UserManager::loadUserInfo(const string& username, User& user) {
     user = userDatabase->getUser(username);                 // Lấy thông tin user ra biến tham chiếu
     return true;
 }
+```
+- Lấy thông tin user từ CSDL, trả về true nếu tồn tại.
 
+---
+
+```c++
 // ==================== Cập nhật thông tin người dùng ====================
 void UserManager::updateUserInfo(const string& currentUsername, User& currentUser) {
     string targetUsername;
@@ -354,7 +432,14 @@ void UserManager::updateUserInfo(const string& currentUsername, User& currentUse
         cout << "Ma OTP khong dung! Huy cap nhat." << endl; // Nếu OTP sai
     }
 }
+```
+- Cập nhật thông tin user.  
+- Nếu là quản lý có thể cập nhật hộ người khác (bắt buộc xác nhận bằng OTP).  
+- Nếu là user thường chỉ cập nhật được thông tin của chính mình.
 
+---
+
+```c++
 // ==================== Menu dành cho quản trị viên ====================
 void UserManager::showManagerMenu(const string& username) {
     User manager = userDatabase->getUser(username);          // Lấy thông tin quản lý
@@ -400,7 +485,12 @@ void UserManager::showManagerMenu(const string& username) {
         }
     } while (choice != 4);                                  // Lặp đến khi chọn đăng xuất
 }
+```
+- Menu dành cho quản lý: tạo account hộ, đổi pass, cập nhật thông tin user bất kỳ, đăng xuất.
 
+---
+
+```c++
 // ==================== Menu dành cho người dùng thường ====================
 void UserManager::showUserMenu(const string& username) {
     User user = userDatabase->getUser(username);            // Lấy thông tin user
@@ -463,3 +553,10 @@ void UserManager::showUserMenu(const string& username) {
         }
     } while (choice != 5);                                  // Lặp đến khi chọn đăng xuất
 }
+```
+- Menu dành cho user thường: đổi pass, cập nhật thông tin, xem lịch sử giao dịch, chuyển điểm, đăng xuất.
+
+---
+
+**Tóm lại:**  
+File này tổ chức đầy đủ nghiệp vụ quản lý user, xác thực OTP, giao dịch, cập nhật thông tin, phân quyền quản trị viên/người dùng thường, có xác thực OTP cho các hành động nhạy cảm.
